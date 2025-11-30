@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { Select } from "./ui/select";
+import { Button } from "./components/ui/button";
+import { Input } from "./components/ui/input";
+import { Label } from "./components/ui/label";
+import { Select } from "./components/ui/select";
 import {
   LogOut,
   Shield,
@@ -15,14 +15,16 @@ import {
   Trash2,
   CheckCircle,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
+import { useUsers } from './hooks/useApi';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "./ui/dialog";
+} from "./components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -30,40 +32,25 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "./ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+} from "./components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 
 export function AdministradorDashboard({ userName, onLogout }) {
   const [activeMenu, setActiveMenu] = useState("membros");
-  const [membros, setMembros] = useState([
-    {
-      id: "1",
-      nome: "Ana Silva",
-      cpf: "123.456.789-00",
-      email: "ana@email.com",
-      telefone: "(38) 99999-1111",
-      endereco: "Rua das Flores, 123",
-      status: "ativo",
-    },
-    {
-      id: "2",
-      nome: "Bruno Mendes",
-      cpf: "987.654.321-00",
-      email: "bruno@email.com",
-      telefone: "(38) 99999-2222",
-      endereco: "Av. Principal, 456",
-      status: "ativo",
-    },
-    {
-      id: "3",
-      nome: "Carla Lima",
-      cpf: "456.789.123-00",
-      email: "carla@email.com",
-      telefone: "(38) 99999-3333",
-      endereco: "Praça Central, 789",
-      status: "inativo",
-    },
-  ]);
+  
+  // Hook para gerenciar usuários via API
+  const { users: allUsers, loading: apiLoading, error: apiError, createUser, updateUser, deleteUser } = useUsers();
+
+  // Filtrar usuários por papel
+  const membros = allUsers.filter(user => {
+    const papel = user.login?.toLowerCase();
+    return papel === 'membro' || (!papel || (papel !== 'admin' && papel !== 'tesoureiro'));
+  });
+
+  const funcionarios = allUsers.filter(user => {
+    const papel = user.login?.toLowerCase();
+    return papel === 'admin' || papel === 'tesoureiro';
+  });
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -191,11 +178,20 @@ export function AdministradorDashboard({ userName, onLogout }) {
     setIsDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
-    setMembros(membros.filter((c) => c.id !== memberToDelete.id));
-    setIsDeleteDialogOpen(false);
-    setMemberToDelete(null);
-    showNotification("Membro removido com sucesso!", "success");
+  const confirmDelete = async () => {
+    if (!memberToDelete) return;
+    
+    setLoading(true);
+    try {
+      await deleteUser(memberToDelete.id);
+      setIsDeleteDialogOpen(false);
+      setMemberToDelete(null);
+      showNotification("Membro removido com sucesso!", "success");
+    } catch (error) {
+      showNotification(`Erro ao remover membro: ${error.message}`, "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSaveMembro = async () => {
@@ -204,33 +200,22 @@ export function AdministradorDashboard({ userName, onLogout }) {
     }
 
     setLoading(true);
-    
-    // Simular delay de API
-    await new Promise(resolve => setTimeout(resolve, 1000));
 
     try {
       if (editingMembro) {
         // Editar membro existente
-        setMembros(
-          membros.map((c) =>
-            c.id === editingMembro.id ? { ...formData, id: c.id } : c
-          )
-        );
+        await updateUser(editingMembro.id, formData);
         showNotification("Membro atualizado com sucesso!", "success");
       } else {
         // Adicionar novo membro
-        const newMembro = {
-          ...formData,
-          id: Date.now().toString(),
-        };
-        setMembros([...membros, newMembro]);
+        await createUser(formData);
         showNotification("Membro adicionado com sucesso!", "success");
       }
 
       setIsDialogOpen(false);
       setEditingMembro(null);
     } catch (error) {
-      showNotification("Erro ao salvar membro. Tente novamente.", "error");
+      showNotification(`Erro ao salvar membro: ${error.message}`, "error");
     } finally {
       setLoading(false);
     }
@@ -241,6 +226,13 @@ export function AdministradorDashboard({ userName, onLogout }) {
       membro.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
       membro.cpf.includes(searchTerm) ||
       membro.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredFuncionarios = funcionarios.filter(
+    (funcionario) =>
+      funcionario.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      funcionario.cpf.includes(searchTerm) ||
+      funcionario.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const menuItems = [
@@ -384,7 +376,31 @@ export function AdministradorDashboard({ userName, onLogout }) {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredMembros.length === 0 ? (
+                        {apiLoading ? (
+                          <TableRow>
+                            <TableCell
+                              colSpan={7}
+                              className="text-center py-8"
+                            >
+                              <div className="flex items-center justify-center space-x-2">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span>Carregando membros...</span>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ) : apiError ? (
+                          <TableRow>
+                            <TableCell
+                              colSpan={7}
+                              className="text-center py-8 text-red-600"
+                            >
+                              <div className="flex items-center justify-center space-x-2">
+                                <AlertCircle className="h-4 w-4" />
+                                <span>Erro ao carregar membros: {apiError}</span>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ) : filteredMembros.length === 0 ? (
                           <TableRow>
                             <TableCell
                               colSpan={7}
@@ -460,13 +476,112 @@ export function AdministradorDashboard({ userName, onLogout }) {
 
           {/* Funcionários */}
           {activeMenu === "funcionarios" && (
-            <div>
-              <h1 className="text-2xl font-bold text-foreground mb-4">Funcionários</h1>
+            <div className="space-y-6">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">Funcionários</h1>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Administradores e Tesoureiros do sistema
+                  </p>
+                </div>
+              </div>
+
+              {/* Search Bar */}
               <Card>
-                <CardContent className="py-12">
-                  <div className="text-center text-muted-foreground">
-                    <UserCog className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
-                    <p>Seção em desenvolvimento</p>
+                <CardContent className="pt-6">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="Buscar por nome, CPF ou email..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Funcionários Table */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>
+                    Funcionários Cadastrados ({filteredFuncionarios.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nome</TableHead>
+                          <TableHead>Papel</TableHead>
+                          <TableHead className="hidden md:table-cell">CPF</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead className="hidden lg:table-cell">Telefone</TableHead>
+                          <TableHead>Login</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {apiLoading ? (
+                          <TableRow>
+                            <TableCell
+                              colSpan={6}
+                              className="text-center py-8"
+                            >
+                              <div className="flex items-center justify-center space-x-2">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span>Carregando funcionários...</span>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ) : apiError ? (
+                          <TableRow>
+                            <TableCell
+                              colSpan={6}
+                              className="text-center py-8 text-red-600"
+                            >
+                              <div className="flex items-center justify-center space-x-2">
+                                <AlertCircle className="h-4 w-4" />
+                                <span>Erro ao carregar funcionários: {apiError}</span>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ) : filteredFuncionarios.length === 0 ? (
+                          <TableRow>
+                            <TableCell
+                              colSpan={6}
+                              className="text-center py-8 text-muted-foreground"
+                            >
+                              Nenhum funcionário encontrado
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          filteredFuncionarios.map((funcionario) => (
+                            <TableRow key={funcionario.id}>
+                              <TableCell className="font-medium">{funcionario.nome}</TableCell>
+                              <TableCell>
+                                <span
+                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                    funcionario.login?.toLowerCase() === "admin"
+                                      ? "bg-red-100 text-red-800"
+                                      : "bg-blue-100 text-blue-800"
+                                  }`}
+                                >
+                                  {funcionario.login?.toLowerCase() === "admin"
+                                    ? "Administrador"
+                                    : "Tesoureiro"}
+                                </span>
+                              </TableCell>
+                              <TableCell className="hidden md:table-cell">{funcionario.cpf}</TableCell>
+                              <TableCell>{funcionario.email}</TableCell>
+                              <TableCell className="hidden lg:table-cell">{funcionario.telefone}</TableCell>
+                              <TableCell>{funcionario.login}</TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
                   </div>
                 </CardContent>
               </Card>

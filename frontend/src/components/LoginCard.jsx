@@ -4,26 +4,53 @@ import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { LogIn, Shield, User, Wallet } from "lucide-react";
+import { LogIn, Shield, User, Wallet, Loader2, AlertCircle } from "lucide-react";
+import { authService } from '../services/apiService';
 
 export function LoginCard({ onLogin }) {
   const [userType, setUserType] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
+    setError('');
     
     if (!userType) {
-      alert("Selecione o tipo de usuário");
+      setError("Selecione o tipo de usuário");
       return;
     }
     
-    // Simulação de login - extrair nome do email
-    const userName = email.split("@")[0] || "Usuário";
+    if (!email || !password) {
+      setError("Preencha todos os campos");
+      return;
+    }
     
-    // Redirecionar para o dashboard correspondente
-    onLogin(userType, userName);
+    setLoading(true);
+    
+    try {
+      // Tentar autenticar com o backend
+      const credentials = {
+        login: email, // Pode ser login ou email
+        password: password
+      };
+      
+      const result = await authService.login(credentials);
+      
+      if (result.success) {
+        // Extrair nome do email para exibição
+        const userName = email.split("@")[0] || "Usuário";
+        
+        // Login bem-sucedido - redirecionar para dashboard
+        onLogin(userType, userName);
+      }
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getUserIcon = () => {
@@ -65,6 +92,14 @@ export function LoginCard({ onLogin }) {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleLogin} className="space-y-4">
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              <span className="text-sm">{error}</span>
+            </div>
+          )}
+          
           {/* User Type Selection */}
           <div className="space-y-2">
             <Label htmlFor="userType">Tipo de Usuário</Label>
@@ -93,11 +128,11 @@ export function LoginCard({ onLogin }) {
 
           {/* Email */}
           <div className="space-y-2">
-            <Label htmlFor="email">Email ou CPF</Label>
+            <Label htmlFor="email">Login/Email *</Label>
             <Input
               id="email"
               type="text"
-              placeholder="Digite seu email ou CPF"
+              placeholder="Digite seu login ou email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -106,7 +141,7 @@ export function LoginCard({ onLogin }) {
 
           {/* Password */}
           <div className="space-y-2">
-            <Label htmlFor="password">Senha</Label>
+            <Label htmlFor="password">Senha *</Label>
             <Input
               id="password"
               type="password"
@@ -121,10 +156,14 @@ export function LoginCard({ onLogin }) {
           <Button 
             type="submit" 
             className="w-full"
-            disabled={!userType}
+            disabled={!userType || !email || !password || loading}
           >
-            <LogIn className="w-4 h-4 mr-2" />
-            Entrar no Sistema
+            {loading ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <LogIn className="w-4 h-4 mr-2" />
+            )}
+            {loading ? 'Verificando...' : 'Entrar no Sistema'}
           </Button>
 
           {/* Additional Links */}

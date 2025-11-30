@@ -1,11 +1,10 @@
-// Use the example image asset from the `exemplo_figma` folder so the visual matches the example
-import image_a719d7cf6dbcef716d4ba410543dd2f3ec13f11b from '../exemplo_figma/assets/a719d7cf6dbcef716d4ba410543dd2f3ec13f11b.png';
+import welcomeImage from './assets/welcome-image.png';
 import { useState } from "react";
 import { LoginCard } from "./components/LoginCard";
 import { InfoDropdown } from "./components/InfoDropdown";
 import { MembroDashboard } from "./components/MembroDashboard";
 import { TesoureiroDashboard } from "./components/TesoureiroDashboard";
-import { AdministradorDashboard } from "./components/AdministradorDashboard";
+import { AdministradorDashboard } from "./AdministradorDashboard";
 import { ImageWithFallback } from "./components/figma/ImageWithFallback";
 import { Users, Store, TrendingUp } from "lucide-react";
 
@@ -69,7 +68,7 @@ export default function App() {
               {/* Welcome Image */}
               <div className="rounded-lg overflow-hidden shadow-lg mb-6">
                 <ImageWithFallback 
-                  src={image_a719d7cf6dbcef716d4ba410543dd2f3ec13f11b}
+                  src={welcomeImage}
                   alt="Bem-vindo ao AVAMUD"
                   className="w-full h-64 object-cover"
                 />

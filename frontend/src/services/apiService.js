@@ -1,0 +1,186 @@
+ import api from '../api';
+
+// Serviços para gerenciamento de usuários (membros)
+export const userService = {
+  // Listar todos os usuários
+  async getAllUsers() {
+    try {
+      const response = await api.get('/users');
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar usuários:', error);
+      throw error;
+    }
+  },
+
+  // Buscar usuário por ID
+  async getUserById(id) {
+    try {
+      const response = await api.get(`/users/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar usuário:', error);
+      throw error;
+    }
+  },
+
+  // Criar novo usuário
+  async createUser(userData) {
+    try {
+      const response = await api.post('/users', userData);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao criar usuário:', error);
+      throw error;
+    }
+  },
+
+  // Atualizar usuário
+  async updateUser(id, userData) {
+    try {
+      const response = await api.put(`/users/${id}`, userData);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao atualizar usuário:', error);
+      throw error;
+    }
+  },
+
+  // Deletar usuário
+  async deleteUser(id) {
+    try {
+      await api.delete(`/users/${id}`);
+      return true;
+    } catch (error) {
+      console.error('Erro ao deletar usuário:', error);
+      throw error;
+    }
+  }
+};
+
+// Serviços para gerenciamento de pagamentos
+export const paymentService = {
+  // Listar todos os pagamentos
+  async getAllPayments() {
+    try {
+      const response = await api.get('/payments');
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar pagamentos:', error);
+      throw error;
+    }
+  },
+
+  // Buscar pagamento por ID
+  async getPaymentById(id) {
+    try {
+      const response = await api.get(`/payments/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar pagamento:', error);
+      throw error;
+    }
+  },
+
+  // Criar novo pagamento
+  async createPayment(paymentData) {
+    try {
+      const response = await api.post('/payments', paymentData);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao criar pagamento:', error);
+      throw error;
+    }
+  },
+
+  // Atualizar pagamento
+  async updatePayment(id, paymentData) {
+    try {
+      const response = await api.put(`/payments/${id}`, paymentData);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao atualizar pagamento:', error);
+      throw error;
+    }
+  },
+
+  // Deletar pagamento
+  async deletePayment(id) {
+    try {
+      await api.delete(`/payments/${id}`);
+      return true;
+    } catch (error) {
+      console.error('Erro ao deletar pagamento:', error);
+      throw error;
+    }
+  },
+
+  // Buscar histórico de um pagamento específico
+  async getPaymentHistory(paymentId) {
+    try {
+      const response = await api.get(`/payments/${paymentId}/history`);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar histórico do pagamento:', error);
+      throw error;
+    }
+  },
+
+  // Buscar todo o histórico de pagamentos
+  async getAllPaymentHistory() {
+    try {
+      const response = await api.get('/payments/history');
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar histórico de pagamentos:', error);
+      throw error;
+    }
+  }
+};
+
+// Serviços para autenticação
+export const authService = {
+  // Login com validação real
+  async login(credentials) {
+    try {
+      // Mapear dados para formato do backend
+      const loginData = {
+        username: credentials.login || credentials.username,
+        password: credentials.password
+      };
+      
+      const response = await api.post('/auth/login', loginData);
+      const { token } = response.data;
+      
+      if (!token) {
+        throw new Error('Token de acesso não recebido');
+      }
+      
+      // Armazenar token no localStorage
+      localStorage.setItem('authToken', token);
+      
+      return { token, success: true };
+    } catch (error) {
+      console.error('Erro no login:', error);
+      const message = error.response?.data?.error || 
+                     error.response?.data?.message || 
+                     'Credenciais inválidas';
+      throw new Error(message);
+    }
+  },
+
+  // Logout
+  logout() {
+    localStorage.removeItem('token');
+  },
+
+  // Verificar se está logado
+  isAuthenticated() {
+    return !!localStorage.getItem('token');
+  },
+
+  // Obter token
+  getToken() {
+    return localStorage.getItem('token');
+  }
+};

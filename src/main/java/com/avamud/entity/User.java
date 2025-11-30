@@ -39,6 +39,22 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Address> addresses;
 
+    // Método para derivar o papel baseado no login
+    @Transient
+    public String getPapel() {
+        if (this.login != null) {
+            switch (this.login.toLowerCase()) {
+                case "admin":
+                    return "administrador";
+                case "tesoureiro":
+                    return "tesoureiro";
+                default:
+                    return "membro";
+            }
+        }
+        return "membro";
+    }
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<Payment> payments;
 
