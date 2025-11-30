@@ -36,11 +36,11 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(criarUser);
     }
 
-    @PutMapping
+    @PutMapping("/{id}")
     public ResponseEntity<UserDto> atualizarUser(@PathVariable Long id, @RequestBody UserDto userDto) { //Atualizar um usuario
         UserDto atualizarUser = userService.atualizarUser(id, userDto);
-        if (userDto != null) {
-            return ResponseEntity.ok(userDto);
+        if (atualizarUser != null) {
+            return ResponseEntity.ok(atualizarUser);
         } else {
             return ResponseEntity.notFound().build();
         }

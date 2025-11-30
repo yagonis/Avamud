@@ -70,18 +70,25 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-    </dependencies>
-    <dependency>
-        <groupId>org.hibernate.javax.persistence</groupId>
-        <artifactId>hibernate-jpa-2.1-api</artifactId>
-        <version>1.0.2.Final</version>
-    </dependency>
 
-    <dependency>
-        <groupId>javax.persistence</groupId>
-        <artifactId>javax.persistence-api</artifactId>
-        <version>2.2</version>
-    </dependency>
+        <!-- moved additional persistence dependencies into the main dependencies block -->
+        <dependency>
+            <groupId>org.hibernate.javax.persistence</groupId>
+            <artifactId>hibernate-jpa-2.1-api</artifactId>
+            <version>1.0.2.Final</version>
+        </dependency>
+
+        <dependency>
+            <groupId>javax.persistence</groupId>
+            <artifactId>javax.persistence-api</artifactId>
+            <version>2.2</version>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+            <version>3.0.2</version>
+        </dependency>
+    </dependencies>
 
     <build>
         <plugins>
