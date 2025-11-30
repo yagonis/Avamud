@@ -41,30 +41,11 @@ export function AdministradorDashboard({ userName, onLogout }) {
   // Hook para gerenciar usuários via API
   const { users: allUsers, loading: apiLoading, error: apiError, createUser, updateUser, deleteUser } = useUsers();
 
-  // Filtrar usuários por papel
-  const membros = allUsers.filter(user => {
-    const papel = user.login?.toLowerCase();
-    const isMembro = papel === 'membro' || (!papel || (papel !== 'admin' && papel !== 'tesoureiro'));
-    console.log(`User: ${user.nome} | Login: ${user.login} | É membro? ${isMembro}`);
-    return isMembro;
-  });
-
-  const funcionarios = allUsers.filter(user => {
-    const papel = user.login?.toLowerCase();
-    const isFuncionario = papel === 'admin' || papel === 'tesoureiro';
-    console.log(`User: ${user.nome} | Login: ${user.login} | É funcionário? ${isFuncionario}`);
-    return isFuncionario;
-  });
-  
-  console.log('Total allUsers:', allUsers.length);
-  console.log('Total membros:', membros.length);
-  console.log('Total funcionários:', funcionarios.length);
-
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [memberToDelete, setMemberToDelete] = useState(null);
-  const [editingMembro, setEditingMembro] = useState(null);
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [editingUser, setEditingUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState(null);
   const [formData, setFormData] = useState({
@@ -153,8 +134,8 @@ export function AdministradorDashboard({ userName, onLogout }) {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleAddMembro = () => {
-    setEditingMembro(null);
+  const handleAddUser = () => {
+    setEditingUser(null);
     setFormData({
       nome: "",
       cpf: "",
@@ -167,42 +148,42 @@ export function AdministradorDashboard({ userName, onLogout }) {
     setIsDialogOpen(true);
   };
 
-  const handleEditMembro = (membro) => {
-    setEditingMembro(membro);
+  const handleEditUser = (user) => {
+    setEditingUser(user);
     setFormData({
-      nome: membro.nome,
-      cpf: membro.cpf,
-      email: membro.email,
-      telefone: membro.telefone,
-      endereco: membro.endereco,
-      status: membro.status,
+      nome: user.nome,
+      cpf: user.cpf,
+      email: user.email,
+      telefone: user.telefone,
+      endereco: user.endereco || "",
+      status: user.status || "ativo",
     });
     setErrors({});
     setIsDialogOpen(true);
   };
 
-  const handleDeleteMembro = (membro) => {
-    setMemberToDelete(membro);
+  const handleDeleteUser = (user) => {
+    setUserToDelete(user);
     setIsDeleteDialogOpen(true);
   };
 
   const confirmDelete = async () => {
-    if (!memberToDelete) return;
+    if (!userToDelete) return;
     
     setLoading(true);
     try {
-      await deleteUser(memberToDelete.id);
+      await deleteUser(userToDelete.id);
       setIsDeleteDialogOpen(false);
-      setMemberToDelete(null);
-      showNotification("Membro removido com sucesso!", "success");
+      setUserToDelete(null);
+      showNotification("Usuário removido com sucesso!", "success");
     } catch (error) {
-      showNotification(`Erro ao remover membro: ${error.message}`, "error");
+      showNotification(`Erro ao remover usuário: ${error.message}`, "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSaveMembro = async () => {
+  const handleSaveUser = async () => {
     if (!validateForm()) {
       return;
     }
@@ -210,54 +191,42 @@ export function AdministradorDashboard({ userName, onLogout }) {
     setLoading(true);
 
     try {
-      if (editingMembro) {
-        // Editar membro existente
-        await updateUser(editingMembro.id, formData);
-        showNotification("Membro atualizado com sucesso!", "success");
+      if (editingUser) {
+        // Editar usuário existente
+        await updateUser(editingUser.id, formData);
+        showNotification("Usuário atualizado com sucesso!", "success");
       } else {
-        // Adicionar novo membro
+        // Adicionar novo usuário
         await createUser(formData);
-        showNotification("Membro adicionado com sucesso!", "success");
+        showNotification("Usuário adicionado com sucesso!", "success");
       }
 
       setIsDialogOpen(false);
-      setEditingMembro(null);
+      setEditingUser(null);
     } catch (error) {
-      showNotification(`Erro ao salvar membro: ${error.message}`, "error");
+      showNotification(`Erro ao salvar usuário: ${error.message}`, "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredMembros = membros.filter(
-    (membro) =>
-      membro.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      membro.cpf.includes(searchTerm) ||
-      membro.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const filteredFuncionarios = funcionarios.filter(
-    (funcionario) =>
-      funcionario.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      funcionario.cpf.includes(searchTerm) ||
-      funcionario.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredUsers = allUsers.filter(
+    (user) =>
+      user.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.cpf.includes(searchTerm) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const menuItems = [
     {
       id: "membros",
-      label: "Gerenciar Membros",
+      label: "Gerenciar Usuários",
       icon: Users,
     },
     {
       id: "financeiro",
       label: "Financeiro",
       icon: DollarSign,
-    },
-    {
-      id: "funcionarios",
-      label: "Funcionários",
-      icon: UserCog,
     },
   ];
 
@@ -330,19 +299,19 @@ export function AdministradorDashboard({ userName, onLogout }) {
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
         <div className="p-4 lg:p-8">
-          {/* Gerenciar Membros */}
+          {/* Gerenciar Usuários */}
           {activeMenu === "membros" && (
             <div className="space-y-6">
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
-                  <h1 className="text-2xl font-bold text-foreground">Gerenciar Membros</h1>
+                  <h1 className="text-2xl font-bold text-foreground">Gerenciar usuários</h1>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Adicione, edite ou remova membros do sistema
+                    Adicione, edite ou remova usuários do sistema
                   </p>
                 </div>
-                <Button onClick={handleAddMembro} className="bg-primary hover:bg-primary/90">
+                <Button onClick={handleAddUser} className="bg-primary hover:bg-primary/90">
                   <Plus className="w-4 h-4 mr-2" />
-                  Adicionar Membro
+                  Adicionar Usuário
                 </Button>
               </div>
 
@@ -366,7 +335,7 @@ export function AdministradorDashboard({ userName, onLogout }) {
               <Card>
                 <CardHeader>
                   <CardTitle>
-                    Membros Cadastrados ({filteredMembros.length})
+                    Usuários Cadastrados ({filteredUsers.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -392,7 +361,7 @@ export function AdministradorDashboard({ userName, onLogout }) {
                             >
                               <div className="flex items-center justify-center space-x-2">
                                 <Loader2 className="h-4 w-4 animate-spin" />
-                                <span>Carregando membros...</span>
+                                <span>Carregando usuários...</span>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -404,36 +373,36 @@ export function AdministradorDashboard({ userName, onLogout }) {
                             >
                               <div className="flex items-center justify-center space-x-2">
                                 <AlertCircle className="h-4 w-4" />
-                                <span>Erro ao carregar membros: {apiError}</span>
+                                <span>Erro ao carregar usuários: {apiError}</span>
                               </div>
                             </TableCell>
                           </TableRow>
-                        ) : filteredMembros.length === 0 ? (
+                        ) : filteredUsers.length === 0 ? (
                           <TableRow>
                             <TableCell
                               colSpan={7}
                               className="text-center py-8 text-muted-foreground"
                             >
-                              Nenhum membro encontrado
+                              Nenhum usuário encontrado
                             </TableCell>
                           </TableRow>
                         ) : (
-                          filteredMembros.map((membro) => (
-                            <TableRow key={membro.id}>
-                              <TableCell className="font-medium">{membro.nome}</TableCell>
-                              <TableCell className="hidden md:table-cell">{membro.cpf}</TableCell>
-                              <TableCell>{membro.email}</TableCell>
-                              <TableCell className="hidden lg:table-cell">{membro.telefone}</TableCell>
-                              <TableCell className="hidden xl:table-cell">{membro.endereco}</TableCell>
+                          filteredUsers.map((user) => (
+                            <TableRow key={user.id}>
+                              <TableCell className="font-medium">{user.nome}</TableCell>
+                              <TableCell className="hidden md:table-cell">{user.cpf}</TableCell>
+                              <TableCell>{user.email}</TableCell>
+                              <TableCell className="hidden lg:table-cell">{user.telefone}</TableCell>
+                              <TableCell className="hidden xl:table-cell">{user.endereco}</TableCell>
                               <TableCell>
                                 <span
                                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                    membro.status === "ativo"
+                                    user.status === "ativo"
                                       ? "bg-green-100 text-green-800"
                                       : "bg-gray-100 text-gray-800"
                                   }`}
                                 >
-                                  {membro.status === "ativo"
+                                  {user.status === "ativo"
                                     ? "Ativo"
                                     : "Inativo"}
                                 </span>
@@ -441,14 +410,14 @@ export function AdministradorDashboard({ userName, onLogout }) {
                               <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-1">
                                   <Button
-                                    onClick={() => handleEditMembro(membro)}
+                                    onClick={() => handleEditUser(user)}
                                     variant="ghost"
                                     size="sm"
                                   >
                                     <Edit className="w-4 h-4 text-blue-600" />
                                   </Button>
                                   <Button
-                                    onClick={() => handleDeleteMembro(membro)}
+                                    onClick={() => handleDeleteUser(user)}
                                     variant="ghost"
                                     size="sm"
                                   >
@@ -483,130 +452,18 @@ export function AdministradorDashboard({ userName, onLogout }) {
           )}
 
           {/* Funcionários */}
-          {activeMenu === "funcionarios" && (
-            <div className="space-y-6">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">Funcionários</h1>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Administradores e Tesoureiros do sistema
-                  </p>
-                </div>
-              </div>
-
-              {/* Search Bar */}
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      type="text"
-                      placeholder="Buscar por nome, CPF ou email..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Funcionários Table */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>
-                    Funcionários Cadastrados ({filteredFuncionarios.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Nome</TableHead>
-                          <TableHead>Papel</TableHead>
-                          <TableHead className="hidden md:table-cell">CPF</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead className="hidden lg:table-cell">Telefone</TableHead>
-                          <TableHead>Login</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {apiLoading ? (
-                          <TableRow>
-                            <TableCell
-                              colSpan={6}
-                              className="text-center py-8"
-                            >
-                              <div className="flex items-center justify-center space-x-2">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                <span>Carregando funcionários...</span>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ) : apiError ? (
-                          <TableRow>
-                            <TableCell
-                              colSpan={6}
-                              className="text-center py-8 text-red-600"
-                            >
-                              <div className="flex items-center justify-center space-x-2">
-                                <AlertCircle className="h-4 w-4" />
-                                <span>Erro ao carregar funcionários: {apiError}</span>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ) : filteredFuncionarios.length === 0 ? (
-                          <TableRow>
-                            <TableCell
-                              colSpan={6}
-                              className="text-center py-8 text-muted-foreground"
-                            >
-                              Nenhum funcionário encontrado
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          filteredFuncionarios.map((funcionario) => (
-                            <TableRow key={funcionario.id}>
-                              <TableCell className="font-medium">{funcionario.nome}</TableCell>
-                              <TableCell>
-                                <span
-                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                    funcionario.login?.toLowerCase() === "admin"
-                                      ? "bg-red-100 text-red-800"
-                                      : "bg-blue-100 text-blue-800"
-                                  }`}
-                                >
-                                  {funcionario.login?.toLowerCase() === "admin"
-                                    ? "Administrador"
-                                    : "Tesoureiro"}
-                                </span>
-                              </TableCell>
-                              <TableCell className="hidden md:table-cell">{funcionario.cpf}</TableCell>
-                              <TableCell>{funcionario.email}</TableCell>
-                              <TableCell className="hidden lg:table-cell">{funcionario.telefone}</TableCell>
-                              <TableCell>{funcionario.login}</TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
         </div>
       </main>
 
-      {/* Add/Edit Membro Dialog */}
+      {/* Add/Edit User Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
-              {editingMembro ? "Editar Membro" : "Adicionar Membro"}
+              {editingUser ? "Editar Usuário" : "Adicionar Usuário"}
             </DialogTitle>
             <DialogDescription>
-              Preencha as informações do membro abaixo. Campos com * são obrigatórios.
+              Preencha as informações do usuário abaixo. Campos com * são obrigatórios.
             </DialogDescription>
           </DialogHeader>
 
@@ -718,11 +575,11 @@ export function AdministradorDashboard({ userName, onLogout }) {
               Cancelar
             </Button>
             <Button 
-              onClick={handleSaveMembro} 
+              onClick={handleSaveUser} 
               disabled={loading}
               className="bg-primary hover:bg-primary/90"
             >
-              {loading ? "Salvando..." : editingMembro ? "Salvar Alterações" : "Adicionar Membro"}
+              {loading ? "Salvando..." : editingUser ? "Salvar Alterações" : "Adicionar Usuário"}
             </Button>
           </div>
         </DialogContent>
@@ -734,7 +591,7 @@ export function AdministradorDashboard({ userName, onLogout }) {
           <DialogHeader>
             <DialogTitle>Confirmar Remoção</DialogTitle>
             <DialogDescription>
-              Tem certeza que deseja remover o membro <strong>{memberToDelete?.nome}</strong>? 
+              Tem certeza que deseja remover o usuário <strong>{userToDelete?.nome}</strong>? 
               Esta ação não pode ser desfeita.
             </DialogDescription>
           </DialogHeader>
@@ -748,6 +605,133 @@ export function AdministradorDashboard({ userName, onLogout }) {
             </Button>
             <Button 
               onClick={confirmDelete}
+              variant="destructive"
+            >
+              Sim, Remover
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Funcionário Dialog */}
+      <Dialog open={isFuncionarioDialogOpen} onOpenChange={setIsFuncionarioDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Editar Funcionário</DialogTitle>
+            <DialogDescription>
+              Preencha as informações do funcionário abaixo. Campos com * são obrigatórios.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="func-nome">Nome Completo *</Label>
+              <Input
+                id="func-nome"
+                value={formData.nome}
+                onChange={(e) => {
+                  setFormData({ ...formData, nome: e.target.value });
+                  if (errors.nome) setErrors({ ...errors, nome: null });
+                }}
+                placeholder="Digite o nome completo"
+                className={errors.nome ? "border-red-500" : ""}
+              />
+              {errors.nome && (
+                <p className="text-xs text-red-600">{errors.nome}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="func-cpf">CPF *</Label>
+              <Input
+                id="func-cpf"
+                value={formData.cpf}
+                onChange={(e) => {
+                  const formatted = formatCPF(e.target.value);
+                  setFormData({ ...formData, cpf: formatted });
+                  if (errors.cpf) setErrors({ ...errors, cpf: null });
+                }}
+                placeholder="000.000.000-00"
+                maxLength={14}
+                className={errors.cpf ? "border-red-500" : ""}
+              />
+              {errors.cpf && (
+                <p className="text-xs text-red-600">{errors.cpf}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="func-email">Email *</Label>
+              <Input
+                id="func-email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => {
+                  setFormData({ ...formData, email: e.target.value });
+                  if (errors.email) setErrors({ ...errors, email: null });
+                }}
+                placeholder="email@exemplo.com"
+                className={errors.email ? "border-red-500" : ""}
+              />
+              {errors.email && (
+                <p className="text-xs text-red-600">{errors.email}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="func-telefone">Telefone</Label>
+              <Input
+                id="func-telefone"
+                value={formData.telefone}
+                onChange={(e) => {
+                  const formatted = formatPhone(e.target.value);
+                  setFormData({ ...formData, telefone: formatted });
+                }}
+                placeholder="(00) 00000-0000"
+                maxLength={15}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setIsFuncionarioDialogOpen(false)}
+              disabled={loading}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleSaveFuncionario} 
+              disabled={loading}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {loading ? "Salvando..." : "Salvar Alterações"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Funcionário Confirmation Dialog */}
+      <Dialog open={isDeleteFuncionarioDialogOpen} onOpenChange={setIsDeleteFuncionarioDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmar Remoção</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja remover o funcionário <strong>{funcionarioToDelete?.nome}</strong>? 
+              Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteFuncionarioDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={confirmDeleteFuncionario}
               variant="destructive"
             >
               Sim, Remover
