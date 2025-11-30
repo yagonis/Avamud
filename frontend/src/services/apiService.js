@@ -150,7 +150,7 @@ export const authService = {
       };
       
       const response = await api.post('/auth/login', loginData);
-      const { token } = response.data;
+      const { token, username, role } = response.data;
       
       if (!token) {
         throw new Error('Token de acesso não recebido');
@@ -159,7 +159,12 @@ export const authService = {
       // Armazenar token no localStorage
       localStorage.setItem('authToken', token);
       
-      return { token, success: true };
+      return { 
+        token, 
+        username, 
+        role, 
+        success: true 
+      };
     } catch (error) {
       console.error('Erro no login:', error);
       const message = error.response?.data?.error || 

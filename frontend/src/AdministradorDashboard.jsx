@@ -44,13 +44,21 @@ export function AdministradorDashboard({ userName, onLogout }) {
   // Filtrar usuários por papel
   const membros = allUsers.filter(user => {
     const papel = user.login?.toLowerCase();
-    return papel === 'membro' || (!papel || (papel !== 'admin' && papel !== 'tesoureiro'));
+    const isMembro = papel === 'membro' || (!papel || (papel !== 'admin' && papel !== 'tesoureiro'));
+    console.log(`User: ${user.nome} | Login: ${user.login} | É membro? ${isMembro}`);
+    return isMembro;
   });
 
   const funcionarios = allUsers.filter(user => {
     const papel = user.login?.toLowerCase();
-    return papel === 'admin' || papel === 'tesoureiro';
+    const isFuncionario = papel === 'admin' || papel === 'tesoureiro';
+    console.log(`User: ${user.nome} | Login: ${user.login} | É funcionário? ${isFuncionario}`);
+    return isFuncionario;
   });
+  
+  console.log('Total allUsers:', allUsers.length);
+  console.log('Total membros:', membros.length);
+  console.log('Total funcionários:', funcionarios.length);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);

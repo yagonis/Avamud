@@ -55,6 +55,7 @@ public class SpringSecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                     .requestMatchers("/auth/**").permitAll()
                     .requestMatchers("/users").permitAll()
+                    .requestMatchers("/test/**").permitAll() // TEMPORÁRIO: Endpoint de teste
                     .requestMatchers("/actuator/health").permitAll() // allow actuator health for local dev
                     .requestMatchers("/payments/**").authenticated() // Permitir apenas para autenticados
                     .anyRequest().authenticated());

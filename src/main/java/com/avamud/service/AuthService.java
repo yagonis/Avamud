@@ -27,10 +27,33 @@ public class AuthService {
             UserDetailImpl userAuthenticate = (UserDetailImpl) authentication.getPrincipal();
 
             String token = jwtUtils.generateTokenFromUserDetailsImpl(userAuthenticate);
-            AcessDto acessDto = new AcessDto(token);
+            
+            // Determinar o papel baseado no username
+            String role = determineRole(userAuthenticate.getUsername());
+            
+            AcessDto acessDto = new AcessDto();
+            acessDto.setToken(token);
+            acessDto.setUsername(userAuthenticate.getUsername());
+            acessDto.setRole(role);
+            
             return acessDto;
         } catch (BadCredentialsException e) {
             throw new BadCredentialsException("Bad credentials");
+        }
+    }
+    
+    private String determineRole(String username) {
+        if (username == null) {
+            return "membro";
+        }
+        
+        switch (username.toLowerCase()) {
+            case "admin":
+                return "administrador";
+            case "tesoureiro":
+                return "tesoureiro";
+            default:
+                return "membro";
         }
     }
 }

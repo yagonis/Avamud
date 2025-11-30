@@ -40,8 +40,17 @@ export function LoginCard({ onLogin }) {
       const result = await authService.login(credentials);
       
       if (result.success) {
-        // Extrair nome do email para exibição
-        const userName = email.split("@")[0] || "Usuário";
+        // Validar se o papel do usuário corresponde ao tipo selecionado
+        const userRole = result.role; // 'administrador', 'tesoureiro', ou 'membro'
+        
+        if (userRole !== userType) {
+          setError(`Este usuário não tem permissão de ${userType}. Papel do usuário: ${userRole}`);
+          setLoading(false);
+          return;
+        }
+        
+        // Extrair nome do username para exibição
+        const userName = result.username || email.split("@")[0] || "Usuário";
         
         // Login bem-sucedido - redirecionar para dashboard
         onLogin(userType, userName);
