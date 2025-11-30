@@ -24,20 +24,20 @@ public class UserDetailImpl implements UserDetails {
     private String email;
     private String password;
 
-    // Método estático para construir uma instância de UserDetailImpl a partir de um objeto User
-    public static UserDetailImpl build(User user) {
-        return new UserDetailImpl(
-                user.getId(),        // ID do usuário
-                user.getNome(),      // Nome do usuário
-                user.getLogin(),     // Nome de login (username)
-                user.getEmail(),     // Email do usuário
-                user.getSenha(),     // Senha do usuário
-                new ArrayList<>()    // Inicialização de authorities vazia (a lista de permissões)
-        );
-    }
-
     // Lista de permissões (roles) do usuário
     private Collection<? extends GrantedAuthority> authorities;
+
+    // Método estático para construir uma instância de UserDetailImpl a partir de um objeto User
+    public static UserDetailImpl build(User user) {
+        UserDetailImpl userDetail = new UserDetailImpl();
+        userDetail.setId(user.getId());
+        userDetail.setName(user.getNome());
+        userDetail.setUsername(user.getLogin());
+        userDetail.setEmail(user.getEmail());
+        userDetail.setPassword(user.getSenha());
+        userDetail.setAuthorities(new ArrayList<>());
+        return userDetail;
+    }
 
     // Métodos exigidos pela interface UserDetails
     @Override

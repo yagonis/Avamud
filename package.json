@@ -1,0 +1,15 @@
+{
+  "name": "avamud-fullstack",
+  "version": "1.0.0",
+  "description": "AVAMUD - Associação de Vendedores Ambulantes de Diamantina",
+  "scripts": {
+    "start": "npm run backend & npm run frontend",
+    "dev": "npm run backend:dev & npm run frontend:dev",
+    "backend": "mvn spring-boot:run",
+    "backend:dev": "cd . && mvn spring-boot:run",
+    "frontend": "npm run dev --prefix frontend",
+    "frontend:dev": "npm run dev --prefix frontend",
+    "build": "mvn clean package && npm run build --prefix frontend",
+    "build:frontend": "npm run build --prefix frontend"
+  }
+}

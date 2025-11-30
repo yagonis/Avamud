@@ -26,16 +26,30 @@ public class AuthFilterToken extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         try{
             String jwt = getToken(request);
+            System.out.println("[AuthFilterToken] incoming request to: " + request.getRequestURI());
+            if (jwt == null) {
+                System.out.println("[AuthFilterToken] no Authorization header with Bearer token found");
+            } else {
+                System.out.println("[AuthFilterToken] token found (prefix): " + (jwt.length() > 20 ? jwt.substring(0,20) + "..." : jwt));
+            }
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
+                System.out.println("[AuthFilterToken] token validated OK");
                 String username = jwtUtils.getUsernameFromToken(jwt);
+                System.out.println("[AuthFilterToken] username extracted from token: " + username);
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                if (userDetails == null) {
+                    System.out.println("[AuthFilterToken] userDetailsService returned null for username: " + username);
+                } else {
+                    System.out.println("[AuthFilterToken] userDetails loaded: " + userDetails.getUsername());
+                }
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 authentication.setDetails(new WebAuthenticationDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+                System.out.println("[AuthFilterToken] authentication set in SecurityContext");
             }
 
         }catch (Exception e) {
-            System.out.println("Erro aou processar o token : " + e.getMessage());
+            System.out.println("Erro ao processar o token : " + e.getMessage());
         }finally {
             filterChain.doFilter(request, response);
         }
