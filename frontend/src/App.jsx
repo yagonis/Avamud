@@ -1,7 +1,5 @@
-// The original import referenced a Figma asset loader which isn't available in this build.
-// Replace with a local/public asset path (place the image at `frontend/public/assets/welcome.png`).
-// Use an SVG placeholder in public assets
-const image_a719d7cf6dbcef716d4ba410543dd2f3ec13f11b = '/assets/welcome.svg';
+// Use the example image asset from the `exemplo_figma` folder so the visual matches the example
+import image_a719d7cf6dbcef716d4ba410543dd2f3ec13f11b from '../exemplo_figma/assets/a719d7cf6dbcef716d4ba410543dd2f3ec13f11b.png';
 import { useState } from "react";
 import { LoginCard } from "./components/LoginCard";
 import { InfoDropdown } from "./components/InfoDropdown";
@@ -12,6 +10,7 @@ import { ImageWithFallback } from "./components/figma/ImageWithFallback";
 import { Users, Store, TrendingUp } from "lucide-react";
 
 export default function App() {
+  console.log('frontend: App render')
   const [currentUser, setCurrentUser] = useState(null);
   const [userName, setUserName] = useState("");
 

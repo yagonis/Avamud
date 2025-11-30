@@ -5,10 +5,12 @@ const api = axios.create({
 });
 
 
-api.interceptors.request.use(config => {
-    const token = localStorage.getItem('avamud_token');
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
-});
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token'); // ou onde você guarda
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+}, (error) => Promise.reject(error));
 
 export default api;

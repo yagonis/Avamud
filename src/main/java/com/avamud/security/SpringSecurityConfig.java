@@ -53,10 +53,11 @@ public class SpringSecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(authEntrypointJwt))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/users").permitAll()
-                        .requestMatchers("/payments/**").authenticated() // Permitir apenas para autenticados
-                        .anyRequest().authenticated());
+                    .requestMatchers("/auth/**").permitAll()
+                    .requestMatchers("/users").permitAll()
+                    .requestMatchers("/actuator/health").permitAll() // allow actuator health for local dev
+                    .requestMatchers("/payments/**").authenticated() // Permitir apenas para autenticados
+                    .anyRequest().authenticated());
 
         http.addFilterBefore(authFilterToken(), UsernamePasswordAuthenticationFilter.class);
 
