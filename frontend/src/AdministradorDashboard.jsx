@@ -210,7 +210,7 @@ export function AdministradorDashboard({ userName, onLogout }) {
     }
   };
 
-  const filteredUsers = allUsers.filter(
+  const filteredUsers = (allUsers || []).filter(
     (user) =>
       user.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.cpf.includes(searchTerm) ||
@@ -605,133 +605,6 @@ export function AdministradorDashboard({ userName, onLogout }) {
             </Button>
             <Button 
               onClick={confirmDelete}
-              variant="destructive"
-            >
-              Sim, Remover
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Funcionário Dialog */}
-      <Dialog open={isFuncionarioDialogOpen} onOpenChange={setIsFuncionarioDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Editar Funcionário</DialogTitle>
-            <DialogDescription>
-              Preencha as informações do funcionário abaixo. Campos com * são obrigatórios.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="func-nome">Nome Completo *</Label>
-              <Input
-                id="func-nome"
-                value={formData.nome}
-                onChange={(e) => {
-                  setFormData({ ...formData, nome: e.target.value });
-                  if (errors.nome) setErrors({ ...errors, nome: null });
-                }}
-                placeholder="Digite o nome completo"
-                className={errors.nome ? "border-red-500" : ""}
-              />
-              {errors.nome && (
-                <p className="text-xs text-red-600">{errors.nome}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="func-cpf">CPF *</Label>
-              <Input
-                id="func-cpf"
-                value={formData.cpf}
-                onChange={(e) => {
-                  const formatted = formatCPF(e.target.value);
-                  setFormData({ ...formData, cpf: formatted });
-                  if (errors.cpf) setErrors({ ...errors, cpf: null });
-                }}
-                placeholder="000.000.000-00"
-                maxLength={14}
-                className={errors.cpf ? "border-red-500" : ""}
-              />
-              {errors.cpf && (
-                <p className="text-xs text-red-600">{errors.cpf}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="func-email">Email *</Label>
-              <Input
-                id="func-email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => {
-                  setFormData({ ...formData, email: e.target.value });
-                  if (errors.email) setErrors({ ...errors, email: null });
-                }}
-                placeholder="email@exemplo.com"
-                className={errors.email ? "border-red-500" : ""}
-              />
-              {errors.email && (
-                <p className="text-xs text-red-600">{errors.email}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="func-telefone">Telefone</Label>
-              <Input
-                id="func-telefone"
-                value={formData.telefone}
-                onChange={(e) => {
-                  const formatted = formatPhone(e.target.value);
-                  setFormData({ ...formData, telefone: formatted });
-                }}
-                placeholder="(00) 00000-0000"
-                maxLength={15}
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
-            <Button
-              variant="outline"
-              onClick={() => setIsFuncionarioDialogOpen(false)}
-              disabled={loading}
-            >
-              Cancelar
-            </Button>
-            <Button 
-              onClick={handleSaveFuncionario} 
-              disabled={loading}
-              className="bg-primary hover:bg-primary/90"
-            >
-              {loading ? "Salvando..." : "Salvar Alterações"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Funcionário Confirmation Dialog */}
-      <Dialog open={isDeleteFuncionarioDialogOpen} onOpenChange={setIsDeleteFuncionarioDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Confirmar Remoção</DialogTitle>
-            <DialogDescription>
-              Tem certeza que deseja remover o funcionário <strong>{funcionarioToDelete?.nome}</strong>? 
-              Esta ação não pode ser desfeita.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
-            <Button
-              variant="outline"
-              onClick={() => setIsDeleteFuncionarioDialogOpen(false)}
-            >
-              Cancelar
-            </Button>
-            <Button 
-              onClick={confirmDeleteFuncionario}
               variant="destructive"
             >
               Sim, Remover

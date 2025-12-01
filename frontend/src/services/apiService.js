@@ -176,16 +176,16 @@ export const authService = {
 
   // Logout
   logout() {
-    localStorage.removeItem('token');
+    localStorage.removeItem('authToken');
   },
 
   // Verificar se está logado
   isAuthenticated() {
-    return !!localStorage.getItem('token');
+    return !!localStorage.getItem('authToken');
   },
 
   // Obter token
   getToken() {
-    return localStorage.getItem('token');
+    return localStorage.getItem('authToken');
   }
 };
