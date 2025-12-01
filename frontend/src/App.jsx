@@ -38,7 +38,7 @@ export default function App() {
 
   // Login page
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex flex-col">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="container mx-auto px-4 py-6">
@@ -53,7 +53,7 @@ export default function App() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-12">
+      <main className="flex-grow container mx-auto px-4 py-12">
         <div className="grid lg:grid-cols-2 gap-12 items-start max-w-6xl mx-auto">
           
           {/* About Section */}
@@ -81,15 +81,15 @@ export default function App() {
             <LoginCard onLogin={handleLogin} />
           </div>
         </div>
+
+        {/* Info Dropdown */}
+        <div className="mt-12">
+          <InfoDropdown />
+        </div>
       </main>
 
-      {/* Info Dropdown - Near Footer */}
-      <div className="container mx-auto px-4 pb-12">
-        <InfoDropdown />
-      </div>
-
       {/* Footer */}
-      <footer className="bg-gray-900 text-gray-300 mt-8">
+      <footer className="bg-gray-900 text-gray-300 mt-auto">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <p className="text-sm">© 2025 AVAMUD - Associação de Vendedores Ambulantes de Diamantina</p>

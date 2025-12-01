@@ -8,6 +8,8 @@ import com.avamud.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -87,14 +89,17 @@ public class UserService {
         user.setTelefone(dto.getTelefone());
         user.setDataDeEntrada(dto.getDataDeEntrada());
 
-        // Converte endereços do DTO para entidades e associa ao usuário
-        List<Address> addresses = dto.getAddresses().stream()
-                .map(this::converterAddressEntity)
-                .collect(Collectors.toList());
+        // Converte endereços do DTO para entidades e associa ao usuário (se existirem)
+        List<Address> addresses = new ArrayList<>();
+        if (dto.getAddresses() != null && !dto.getAddresses().isEmpty()) {
+            addresses = dto.getAddresses().stream()
+                    .map(this::converterAddressEntity)
+                    .collect(Collectors.toList());
+            // Configura a relação inversa para cada endereço
+            addresses.forEach(address -> address.setUser(user));
+        }
 
         user.setAddresses(addresses);
-        // Configura a relação inversa para cada endereço
-        addresses.forEach(address -> address.setUser(user));
 
         return user;
     }
@@ -124,11 +129,56 @@ public class UserService {
 
     // Atualiza um usuário existente com os dados do DTO e retorna o usuário atualizado como DTO
     public UserDto atualizarUser(Long id, UserDto userDto) {
-        if (userRepository.existsById(id)) {
-            User user = converterEntity(userDto);
-            user.setId(id); // Garante que o ID do usuário não seja alterado
-            user.setSenha(passwordEncoder.encode(user.getSenha())); // Codifica a senha antes de salvar
-            User atualizarUser = userRepository.save(user);
+        Optional<User> existingUserOpt = userRepository.findById(id);
+        if (existingUserOpt.isPresent()) {
+            User existingUser = existingUserOpt.get();
+            
+            // Atualizar campos básicos
+            // Atualiza campos básicos se fornecidos (mantém valores existentes quando ausentes)
+            if (userDto.getNome() != null && !userDto.getNome().isEmpty()) {
+                existingUser.setNome(userDto.getNome());
+            }
+            if (userDto.getCpf() != null && !userDto.getCpf().isEmpty()) {
+                existingUser.setCpf(userDto.getCpf());
+            }
+            // Atualiza CNPJ somente se informado (evita sobrescrever com string vazia que viola unique/NOT NULL)
+            if (userDto.getCnpj() != null && !userDto.getCnpj().isEmpty()) {
+                existingUser.setCnpj(userDto.getCnpj());
+            }
+            if (userDto.getEmail() != null && !userDto.getEmail().isEmpty()) {
+                existingUser.setEmail(userDto.getEmail());
+            }
+            // Telefone é obrigatório na entidade; atualiza apenas se usuário forneceu um valor
+            if (userDto.getTelefone() != null && !userDto.getTelefone().isEmpty()) {
+                existingUser.setTelefone(userDto.getTelefone());
+            }
+            
+            // Atualizar login se fornecido
+            if (userDto.getLogin() != null && !userDto.getLogin().isEmpty()) {
+                existingUser.setLogin(userDto.getLogin());
+            }
+            
+            // Atualizar senha SOMENTE se uma nova senha foi fornecida
+            if (userDto.getSenha() != null && !userDto.getSenha().isEmpty()) {
+                existingUser.setSenha(passwordEncoder.encode(userDto.getSenha()));
+            }
+            // Se senha é null ou vazia, mantém a senha existente
+            
+            // Atualizar endereços se fornecidos
+            if (userDto.getAddresses() != null && !userDto.getAddresses().isEmpty()) {
+                List<Address> newAddresses = userDto.getAddresses().stream()
+                        .map(this::converterAddressEntity)
+                        .collect(Collectors.toList());
+                
+                // Limpar endereços antigos e adicionar novos
+                existingUser.getAddresses().clear();
+                newAddresses.forEach(address -> {
+                    address.setUser(existingUser);
+                    existingUser.getAddresses().add(address);
+                });
+            }
+            
+            User atualizarUser = userRepository.save(existingUser);
             return converterDTO(atualizarUser);
         } else {
             return null;
@@ -139,7 +189,29 @@ public class UserService {
     public UserDto criarUser(UserDto userDto) {
         // Verifica se o campo login está presente e não é vazio
         if (userDto.getLogin() == null || userDto.getLogin().isEmpty()) {
-            throw new IllegalArgumentException("O campo login é obrigatório");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O campo login é obrigatório");
+        }
+
+        // Valida campos obrigatórios básicos
+        if (userDto.getNome() == null || userDto.getNome().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O campo nome é obrigatório");
+        }
+        if (userDto.getCpf() == null || userDto.getCpf().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O campo CPF é obrigatório");
+        }
+        if (userDto.getEmail() == null || userDto.getEmail().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O campo email é obrigatório");
+        }
+
+        // Se CNPJ não for fornecido, gerar um valor baseado no login (garante unicidade)
+        if (userDto.getCnpj() == null || userDto.getCnpj().isEmpty()) {
+            String base = (userDto.getLogin() != null && !userDto.getLogin().isEmpty()) ? userDto.getLogin() : userDto.getCpf();
+            userDto.setCnpj("cnpj_" + base);
+        }
+
+        // Se telefone não for fornecido, preenche com um padrão genérico para satisfazer NOT NULL
+        if (userDto.getTelefone() == null || userDto.getTelefone().isEmpty()) {
+            userDto.setTelefone("00000000000");
         }
 
         User user = converterEntity(userDto);

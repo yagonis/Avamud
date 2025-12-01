@@ -47,13 +47,17 @@ public class AuthService {
             return "membro";
         }
         
-        switch (username.toLowerCase()) {
-            case "admin":
-                return "administrador";
-            case "tesoureiro":
-                return "tesoureiro";
-            default:
-                return "membro";
+        String usernameLower = username.toLowerCase();
+        
+        // Verificar prefixos e logins específicos
+        if (usernameLower.equals("admin") || usernameLower.startsWith("admin_")) {
+            return "administrador";
+        } else if (usernameLower.equals("tesoureiro") || 
+                   usernameLower.equals("hermesfons") || 
+                   usernameLower.startsWith("tesoureiro_")) {
+            return "tesoureiro";
+        } else {
+            return "membro";
         }
     }
 }

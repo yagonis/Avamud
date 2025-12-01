@@ -54,13 +54,15 @@ public class SpringSecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                     .requestMatchers("/auth/**").permitAll()
-                    .requestMatchers("/users").permitAll()
-                    .requestMatchers("/test/**").permitAll() // TEMPORÁRIO: Endpoint de teste
-                    .requestMatchers("/actuator/health").permitAll() // allow actuator health for local dev
-                    .requestMatchers("/payments/**").authenticated() // Permitir apenas para autenticados
-                    .anyRequest().authenticated());
+                    .requestMatchers("/users/**").permitAll() // DESENVOLVIMENTO: Permitir operações em users
+                    .requestMatchers("/test/**").permitAll() // DESENVOLVIMENTO: Endpoint de teste
+                    .requestMatchers("/documents/**").permitAll() // DESENVOLVIMENTO: Upload de documentos
+                    .requestMatchers("/actuator/health").permitAll() // Health check
+                    .requestMatchers("/payments/**").permitAll() // DESENVOLVIMENTO: Permitir pagamentos
+                    .anyRequest().permitAll()); // DESENVOLVIMENTO: Permitir tudo
 
-        http.addFilterBefore(authFilterToken(), UsernamePasswordAuthenticationFilter.class);
+        // Comentar filtro JWT temporariamente para desenvolvimento
+        // http.addFilterBefore(authFilterToken(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

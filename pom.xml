@@ -16,6 +16,8 @@
     <description>Demo project for Spring Boot</description>
     <properties>
         <java.version>17</java.version>
+        <!-- Permite pular o frontend no build local -->
+        <skip.frontend>false</skip.frontend>
     </properties>
     <dependencies>
         <dependency>
@@ -92,6 +94,24 @@
 
     <build>
         <plugins>
+            <!-- Garantir processamento do Lombok e Java 17 com JDKs mais novos -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <release>${java.version}</release>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>1.18.30</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
@@ -103,8 +123,10 @@
                 <version>1.15.0</version>
                 <configuration>
                     <workingDirectory>frontend</workingDirectory>
-                    <nodeVersion>v18.18.0</nodeVersion>
-                    <npmVersion>9.8.1</npmVersion>
+                    <nodeVersion>v20.19.0</nodeVersion>
+                    <installDirectory>${user.home}/.frontend-maven/node</installDirectory>
+                    <!-- Let the plugin use npm bundled with Node 20.x (npm 10.x) -->
+                    <skip>${skip.frontend}</skip>
                 </configuration>
                 <executions>
                     <execution>

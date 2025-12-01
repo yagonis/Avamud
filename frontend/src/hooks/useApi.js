@@ -67,7 +67,8 @@ export function useUsers() {
         cpf: userData.cpf.replace(/\D/g, ''),
         cnpj: userData.cnpj || '',
         email: userData.email,
-        telefone: userData.telefone,
+        telefone: userData.telefone.replace(/\D/g, ''),
+        login: userData.login || userData.email, // Manter ou usar email como login
         addresses: userData.endereco ? [{
           rua: userData.endereco.split(',')[0] || userData.endereco,
           numero: userData.numero || '',
@@ -77,6 +78,13 @@ export function useUsers() {
           cep: userData.cep || ''
         }] : []
       };
+
+      // Se senha foi fornecida, incluir no update
+      if (userData.senha && userData.senha.trim() !== '') {
+        backendUserData.senha = userData.senha;
+      }
+
+      console.log('Atualizando usuário:', id, backendUserData);
 
       const updatedUser = await userService.updateUser(id, backendUserData);
       setUsers(prev => prev.map(user => user.id === id ? updatedUser : user));

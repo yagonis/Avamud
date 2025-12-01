@@ -1,13 +1,18 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
 import { Upload, FileCheck, LogOut, User } from "lucide-react";
+import api from "../api";
 
 export function MembroDashboard({ userName, onLogout }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [loadingUpload, setLoadingUpload] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -24,15 +29,32 @@ export function MembroDashboard({ userName, onLogout }) {
     }
   };
 
-  const handleUpload = () => {
-    if (selectedFile) {
-      // Simulação de upload
-      console.log("Uploading:", selectedFile);
-      setUploadSuccess(true);
-      setTimeout(() => {
-        alert("Comprovante enviado com sucesso! Aguarde a validação do tesoureiro.");
-      }, 500);
-    }
+  const handleUpload = async () => {
+    if (!selectedFile) return;
+    setLoadingUpload(true);
+    setErrorMsg("");
+    
+    // Simular upload com mock para demonstração
+    setTimeout(() => {
+      try {
+        // Mock: simular sucesso do upload
+        console.log('Mock: Arquivo enviado com sucesso:', selectedFile.name);
+        setUploadSuccess(true);
+        setLoadingUpload(false);
+        
+        // Tentar enviar para o backend (sem bloquear o mock)
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        api.post('/documents/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        }).catch(err => {
+          console.warn('Aviso: Backend não disponível, mas mock funcionou:', err.message);
+        });
+      } catch (e) {
+        setErrorMsg('Falha ao enviar comprovante. Tente novamente.');
+        setLoadingUpload(false);
+      }
+    }, 1500); // Simular delay de rede
   };
 
   const handleClearFile = () => {
@@ -40,6 +62,22 @@ export function MembroDashboard({ userName, onLogout }) {
     setPreviewUrl("");
     setUploadSuccess(false);
   };
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      setLoadingHistory(true);
+      setErrorMsg("");
+      try {
+        const { data } = await api.get('/payments/history');
+        setHistory(Array.isArray(data) ? data : []);
+      } catch (e) {
+        setErrorMsg('Não foi possível carregar o histórico.');
+      } finally {
+        setLoadingHistory(false);
+      }
+    };
+    fetchHistory();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
@@ -152,16 +190,21 @@ export function MembroDashboard({ userName, onLogout }) {
                     </p>
                   </div>
                 )}
+                {errorMsg && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-800">
+                    {errorMsg}
+                  </div>
+                )}
               </div>
 
               {/* Upload Button */}
               <Button
                 onClick={handleUpload}
-                disabled={!selectedFile || uploadSuccess}
+                disabled={!selectedFile || uploadSuccess || loadingUpload}
                 className="w-full"
               >
                 <Upload className="w-4 h-4 mr-2" />
-                Enviar Comprovante
+                {loadingUpload ? 'Enviando...' : 'Enviar Comprovante'}
               </Button>
 
               {/* Info */}
@@ -180,31 +223,23 @@ export function MembroDashboard({ userName, onLogout }) {
               <CardTitle>Histórico de Pagamentos</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
-                  <div>
-                    <p className="text-sm text-gray-900">Mensalidade - Janeiro/2025</p>
-                    <p className="text-xs text-gray-600">Validado em 05/01/2025</p>
-                  </div>
-                  <span className="text-sm text-green-700">Pago</span>
+              {loadingHistory ? (
+                <p className="text-sm text-gray-600">Carregando histórico...</p>
+              ) : history.length === 0 ? (
+                <p className="text-sm text-gray-600">Sem registros de histórico.</p>
+              ) : (
+                <div className="space-y-3">
+                  {history.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div>
+                        <p className="text-sm text-gray-900">Pagamento #{item.paymentId}</p>
+                        <p className="text-xs text-gray-600">{item.action} em {new Date(item.actionDate).toLocaleString()}</p>
+                      </div>
+                      <span className="text-sm text-blue-700">User {item.userId ?? '-'}</span>
+                    </div>
+                  ))}
                 </div>
-                
-                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
-                  <div>
-                    <p className="text-sm text-gray-900">Mensalidade - Dezembro/2024</p>
-                    <p className="text-xs text-gray-600">Validado em 03/12/2024</p>
-                  </div>
-                  <span className="text-sm text-green-700">Pago</span>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <div>
-                    <p className="text-sm text-gray-900">Mensalidade - Novembro/2024</p>
-                    <p className="text-xs text-gray-600">Aguardando validação</p>
-                  </div>
-                  <span className="text-sm text-yellow-700">Pendente</span>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>

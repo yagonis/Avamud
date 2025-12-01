@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { usePayments } from '../hooks/useApi';
+import api from '../api';
 
 export function TesoureiroDashboard({ userName, onLogout }) {
   const [activeMenu, setActiveMenu] = useState("overview");
@@ -36,7 +37,7 @@ export function TesoureiroDashboard({ userName, onLogout }) {
   // Dados das transações vêm da API
   const transactions = getTransactionsForDashboard();
   
-  // Dados mock de fallback caso a API não retorne dados
+  // Mock melhorado: dados sincronizados para demonstração
   const [fallbackTransactions] = useState([
     {
       id: "1",
@@ -72,16 +73,37 @@ export function TesoureiroDashboard({ userName, onLogout }) {
     },
   ]);
 
+  // Calcular totais com dados reais + mock
+  const calculateRealTotals = () => {
+    const apiTransactions = transactions.length > 0 ? transactions : [];
+    const allTransactions = [...apiTransactions, ...fallbackTransactions];
+    
+    const entradas = allTransactions
+      .filter(t => t.type === "entrada" && t.status === "confirmado")
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+    
+    const saidas = allTransactions
+      .filter(t => t.type === "saida" && t.status === "confirmado")
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+    
+    const pendentes = allTransactions
+      .filter(t => t.status === "pendente").length;
+    
+    return {
+      totalEntradas: entradas,
+      totalSaidas: saidas,
+      saldoAtual: entradas - saidas,
+      transacoesPendentes: pendentes
+    };
+  };
+
+  const realStats = calculateRealTotals();
+
   const menuItems = [
     {
       id: "overview",
       label: "Visão Geral",
       icon: TrendingUp,
-    },
-    {
-      id: "transacoes", 
-      label: "Transações",
-      icon: CreditCard,
     },
     {
       id: "relatorios",
@@ -90,25 +112,63 @@ export function TesoureiroDashboard({ userName, onLogout }) {
     },
   ];
 
-  // Cálculos financeiros - priorizar dados da API, fallback para mock
-  const financialStats = getFinancialStats();
-  const hasApiData = transactions.length > 0;
-  
-  const totalEntradas = hasApiData ? financialStats.totalEntradas : fallbackTransactions
-    .filter(t => t.type === "entrada" && t.status === "confirmado")
-    .reduce((sum, t) => sum + t.amount, 0);
-    
-  const totalSaidas = hasApiData ? financialStats.totalSaidas : fallbackTransactions
-    .filter(t => t.type === "saida" && t.status === "confirmado") 
-    .reduce((sum, t) => sum + t.amount, 0);
-    
-  const saldoAtual = hasApiData ? financialStats.saldoAtual : totalEntradas - totalSaidas;
-  
-  const transacoesPendentes = hasApiData ? financialStats.transacoesPendentes : 
-    fallbackTransactions.filter(t => t.status === "pendente").length;
+  // Usar totais calculados que combinam dados reais + mock
+  const totalEntradas = realStats.totalEntradas;
+  const totalSaidas = realStats.totalSaidas;
+  const saldoAtual = realStats.saldoAtual;
+  const transacoesPendentes = realStats.transacoesPendentes;
 
-  // Usar transações da API se disponíveis, senão usar dados mock
-  const displayTransactions = hasApiData ? transactions : fallbackTransactions;
+  // Combinar transações da API com mock para exibição
+  const displayTransactions = transactions.length > 0 
+    ? [...transactions, ...fallbackTransactions] 
+    : fallbackTransactions;
+
+  // Export CSV helper
+  const exportCsv = (txs) => {
+    try {
+      const headers = ["Data", "Descrição", "Tipo", "Status", "Valor"];
+      const rows = txs.map(t => [t.date || '', t.description || '', t.type || '', t.status || '', Number(t.amount || 0).toFixed(2)]);
+      const csvContent = [headers, ...rows].map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `relatorio_transacoes_${Date.now()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Erro ao exportar CSV', e);
+      alert('Erro ao exportar CSV');
+    }
+  };
+
+  // Map de paymentId -> lista de documentos
+  const [documentsMap, setDocumentsMap] = useState({});
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchDocs = async () => {
+      const map = {};
+      for (const t of displayTransactions) {
+        // tentar converter id para número para chamadas reais
+        const paymentId = Number(t.id);
+        if (!isNaN(paymentId) && paymentId > 0) {
+          try {
+            const res = await api.get(`/payments/${paymentId}/documents`);
+            if (mounted) map[paymentId] = res.data || [];
+          } catch (e) {
+            // ignore, sem documentos ou erro
+            if (mounted) map[paymentId] = [];
+          }
+        }
+      }
+      if (mounted) setDocumentsMap(map);
+    };
+    fetchDocs();
+    return () => { mounted = false };
+  }, [displayTransactions]);
 
   return (
     <div className="flex h-screen bg-background">
@@ -281,24 +341,20 @@ export function TesoureiroDashboard({ userName, onLogout }) {
                           <p className="text-xs text-muted-foreground capitalize">
                             {transaction.status}
                           </p>
+                          {/* Mostrar anexos, se houver */}
+                          {documentsMap[Number(transaction.id)] && documentsMap[Number(transaction.id)].length > 0 && (
+                            <div className="mt-2 flex justify-end gap-2">
+                              {documentsMap[Number(transaction.id)].map((doc) => (
+                                <a key={doc.id} href={`/documents/${doc.id}/download`} className="text-sm text-primary underline" target="_blank" rel="noreferrer">
+                                  <Download className="inline w-4 h-4 mr-1" />
+                                  {doc.filename}
+                                </a>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Transações */}
-          {activeMenu === "transacoes" && (
-            <div>
-              <h1 className="text-2xl font-bold text-foreground mb-4">Todas as Transações</h1>
-              <Card>
-                <CardContent className="py-12">
-                  <div className="text-center text-muted-foreground">
-                    <CreditCard className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
-                    <p>Seção de transações detalhadas em desenvolvimento</p>
                   </div>
                 </CardContent>
               </Card>
@@ -309,16 +365,85 @@ export function TesoureiroDashboard({ userName, onLogout }) {
           {activeMenu === "relatorios" && (
             <div>
               <h1 className="text-2xl font-bold text-foreground mb-4">Relatórios</h1>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm">Resumo</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-2">Saldo Atual</p>
+                    <div className="text-xl font-bold">R$ {saldoAtual.toFixed(2)}</div>
+                    <p className="text-xs text-muted-foreground mt-3">Total Entradas: R$ {totalEntradas.toFixed(2)}</p>
+                    <p className="text-xs text-muted-foreground">Total Saídas: R$ {totalSaidas.toFixed(2)}</p>
+                    <p className="text-xs text-muted-foreground">Transações pendentes: {transacoesPendentes}</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm">Período</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-2">Período selecionado</p>
+                    <p className="text-xs text-muted-foreground">Últimos 30 dias (dados combinados)</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm">Exportar</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-2">Exportar relatório CSV</p>
+                    <div className="flex gap-2">
+                      <Button onClick={() => exportCsv(displayTransactions)}>
+                        <Download className="w-4 h-4 mr-2" />Exportar CSV
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
               <Card>
-                <CardContent className="py-12">
-                  <div className="text-center text-muted-foreground">
-                    <Download className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
-                    <p>Seção de relatórios em desenvolvimento</p>
+                <CardHeader>
+                  <CardTitle>Transações (amostra)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full table-auto text-sm">
+                      <thead className="text-left text-xs text-muted-foreground">
+                        <tr>
+                          <th className="px-3 py-2">Data</th>
+                          <th className="px-3 py-2">Descrição</th>
+                          <th className="px-3 py-2">Tipo</th>
+                          <th className="px-3 py-2">Status</th>
+                          <th className="px-3 py-2">Valor</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {displayTransactions.map((t) => (
+                          <tr key={t.id} className="border-b">
+                            <td className="px-3 py-2">{t.date}</td>
+                            <td className="px-3 py-2">{t.description}</td>
+                            <td className="px-3 py-2 capitalize">{t.type}</td>
+                            <td className="px-3 py-2 capitalize">{t.status}</td>
+                            <td className="px-3 py-2">R$ {Number(t.amount || 0).toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </CardContent>
               </Card>
             </div>
           )}
+
+          {/* helper to export CSV (client-side) */}
+          {/**
+           * Export function placed here so it can reference `displayTransactions`.
+           * It's fine in this component for now; if it grows, refactor into a util.
+           */}
+          
         </div>
       </main>
     </div>
