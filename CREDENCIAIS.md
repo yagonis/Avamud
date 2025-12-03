@@ -22,6 +22,16 @@ Email: tesoureiro@avamud.com
 
 ---
 
+### 💰 Novo Tesoureiro (teste)
+```
+Login: tesoureiro2
+Senha: 123456
+Email: tesoureiro2@avamud.com
+```
+**Acesso:** Dashboard financeiro (conta de teste adicional)
+
+---
+
 ### 🛡️ Administrador
 ```
 Login: admin
